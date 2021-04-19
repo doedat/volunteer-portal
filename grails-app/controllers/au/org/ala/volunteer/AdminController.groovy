@@ -311,7 +311,7 @@ class AdminController {
 
             def writer = new CSVWriter((Writer) response.writer,  {
                 'Expedition Id' { it.project.id }
-                'Expedtion Name' { it.project.i18nName }
+                'Expedition Name' { it.project.i18nName }
                 'Institution' { it.project.institution ? it.project.institution.i18nName : it.project.featuredOwner }
                 'Institution Id' { it.project.institution?.id ?: "" }
                 'Inactive' { it.project.inactive ? "t" : "f" }

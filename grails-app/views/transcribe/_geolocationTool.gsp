@@ -259,7 +259,7 @@
       }
       else{
         payload['address'] = address;
-        payload['region'] = 'AU';
+        payload['region'] = 'BE';
       }
 
       geocoder.geocode(payload,

@@ -14,7 +14,7 @@
     <div id="observationFields" entriesFieldId="recordValues.0.${entriesField?.fieldType}">
     </div>
     <button type="button" class="btn btn-small btn-success" id="btnAddRow"><i
-            class="icon-plus icon-white"></i><g:message code="transcribe.dynamicDatasetRows.add_row defined" /></button>
+            class="icon-plus icon-white"></i><g:message code="transcribe.dynamicDatasetRows.add_row" /></button>
 </g:if>
 
 <style type="text/css">

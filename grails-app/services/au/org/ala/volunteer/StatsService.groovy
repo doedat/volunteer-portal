@@ -64,7 +64,7 @@ class StatsService {
         }
 
         int month = 7
-        int year = 2010
+        int year = 2017
 
         def now = Calendar.instance
 

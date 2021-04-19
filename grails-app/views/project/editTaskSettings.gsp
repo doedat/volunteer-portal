@@ -16,7 +16,7 @@
 </content>
 
     <div class="alert alert-warning">
-        <a href=<g:message code="project.edit_task.overview" args="${ [taskCount, createLink(controller: 'task', action: 'list', id: projectInstance.id)] }" />
+        <g:message code="project.edit_task.overview" args="${ [taskCount, createLink(controller: 'task', action: 'list', id: projectInstance.id)] }" />
     </div>
 
 <div class="form-horizontal">
