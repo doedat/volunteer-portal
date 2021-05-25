@@ -16,6 +16,12 @@ class OverviewController {
 
     def showProjectOverview() {
         def project = Project.get(params.id)
+        def hasOverview = project.hasOverviewPage
+
+        if(!hasOverview) {
+            redirect(controller: "project", action: "index", params: params)
+        }
+
         def userId = userService.currentUserId
         def isAdmin = userService.isAdmin()
 
@@ -31,8 +37,8 @@ class OverviewController {
         }
 
         def filter = params.activeFilter
-        params.activeFilter = filter ?: TaskFilter.showAll
-        def max = Math.min(params.max ? params.int('max') : 10, 20)
+        params.activeFilter = filter ?: TaskFilter.showReadyForTranscription
+        def max = Math.min(params.max ? params.int('max') : 12, 20)
         params.max = max
         def order = params.order ?: 'asc'
         params.order = order
@@ -44,7 +50,7 @@ class OverviewController {
         def tasks = Task.findAllByProject(project)
         def filteredTasks
 
-        switch (filter) {
+        switch (params.activeFilter) {
             case TaskFilter.showReadyForTranscription.toString():
                 filteredTasks = tasks.findAll { it.isAvailableForTranscription(userId) }
                 break

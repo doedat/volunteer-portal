@@ -30,6 +30,7 @@ var bvp = {};
             onEscape: true,
             buttons: options.buttons,
             size: opts.size,
+            width: opts.width,
             className: opts.className
         });
 

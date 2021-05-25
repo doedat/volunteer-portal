@@ -22,7 +22,7 @@
 
                 $("li#viewTask button").click(function (e) {
                     e.preventDefault();
-                    var hasOverview = Boolean("${taskInstance?.project?.hasOverviewPage}");
+                    var hasOverview = "${taskInstance?.project?.hasOverviewPage}" === 'true';
                     if (hasOverview) {
                         window.location.href = "${createLink(controller: 'overview', action: 'showProjectOverview', id: taskInstance?.project?.id, params: [userId: userId])}";
                     } else {
@@ -53,7 +53,14 @@
                     </div>
 
                     <ul>
-                        <li id="viewTask"><button class="btn btn-primary" role="button" autofocus tabindex="1"><g:message code="transcribe.nextAction.transcribe_another"/></button></li>
+                        <li id="viewTask"><button class="btn btn-primary" role="button" autofocus tabindex="1">
+                            <g:if test="${taskInstance?.project?.hasOverviewPage}">
+                                <g:message code="transcribe.nextAction.go_back_to_overview"/>
+                            </g:if>
+                            <g:else>
+                                <g:message code="transcribe.nextAction.transcribe_another"/>
+                            </g:else>
+                        </button></li>
                         <li id="goBack"><button class="btn btn-link" tabindex="2"><g:message code="transcribe.nextAction.return_to_the_saved_task"/></button></li>
                         <li id="projectHome"><button class="btn btn-link" tabindex="3"><g:message code="transcribe.nextAction.go_to_landing_page"/></button></li>
                         <li id="viewStats"><button class="btn btn-link" tabindex="3"><g:message code="transcribe.nextAction.view_stats"/></button></li>

@@ -28,3 +28,7 @@
     color: #ffffff;
     padding: 4px 8px;
 }
+
+.lg-bootbox > div.modal-dialog {
+    width: 95%;
+}

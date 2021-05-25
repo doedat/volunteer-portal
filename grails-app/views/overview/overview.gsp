@@ -15,8 +15,8 @@
 
 <body class="digivol">
 
-<cl:headerContent title="${project?.i18nName}" selectedNavItem="expeditions">
-    <p>${project?.i18nShortDescription}</p>
+<cl:headerContent title="${project?.i18nName}" crumbLabel="${message(code: 'overview.overview')}">
+    <%pageScope.crumbs = [[link: createLink(controller: 'project', action: 'index', params: [id: params.id]), label: project?.i18nName]] %>
 </cl:headerContent>
 
 <section id="main-content">

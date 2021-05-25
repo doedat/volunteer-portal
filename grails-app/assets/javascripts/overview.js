@@ -18,8 +18,9 @@ for (var buttonIndex = 0; buttonIndex < previewButtons.length; buttonIndex++) {
         shouldRefresh = false;
         bvp.showModal({
             url: '/overview/preview?taskId=' + this.id,
-            size: 'large',
+            className: 'lg-bootbox',
             title: 'Task preview',
+            backdrop: true,
             buttons: {
                 close: {
                     label: 'Close',

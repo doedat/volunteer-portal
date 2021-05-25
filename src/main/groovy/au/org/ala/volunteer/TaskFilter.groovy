@@ -2,9 +2,9 @@ package au.org.ala.volunteer
 
 enum TaskFilter {
 
-    showAll("taskFilterType.showAll"),
     showReadyForTranscription("taskFilterType.readyForTranscription"),
-    showTranscriptionLocked("taskFilterType.transcriptionLocked")
+    showTranscriptionLocked("taskFilterType.transcriptionLocked"),
+    showAll("taskFilterType.showAll")
 
     String i18nLabel
 

@@ -83,6 +83,7 @@
 </head>
 
 <body>
+<g:set var="hasOverview" value="${taskInstance?.project?.hasOverviewPage}"/>
 
 <section id="transcription-template">
     <div id="page-header" class="row branding-row">
@@ -126,9 +127,15 @@
         <div class="col-sm-7 col-xs-12 transcription-controls">
 
             <div class="btn-group" role="group" aria-label="Transcription controls">
-                <button type="button" class="btn btn-default" id="showNextFromProject" data-container="body"
-                        title="${message(code: 'task.skip_image')}"><g:message
-                        code="task.skip"/></button>
+                <g:if test="${hasOverview}">
+                    <button type="button" class="btn btn-default btn-back-to-overview" data-container="body"
+                            title="Back to overview"><g:message
+                            code="transcribe.nextAction.go_back_to_overview"/></button>
+                </g:if>
+                <g:else>
+                    <button type="button" class="btn btn-default" id="showNextFromProject" data-container="body"
+                            title="${message(code: 'task.skip_image')}"><g:message code="task.skip"/></button>
+                </g:else>
                 <vpf:taskTopicButton task="${taskInstance}" class="btn btn-default"/>
                 <g:link class="btn btn-default" controller="tutorials" action="index" target="_blank"><g:message
                         code="task.view_tutorial"/></g:link>
@@ -270,8 +277,16 @@
                                             class="btn btn-danger bvp-submit-button"><i
                                             class="icon-remove icon-white"></i>&nbsp;${message(code: 'default.button.dont.validate.label', default: 'Mark as Invalid')}
                                     </button>
-                                    <button type="button" class="btn btn-default bvp-submit-button"
-                                            id="showNextFromProject"><g:message code="task.skip"/></button>
+                                    <g:if test="${hasOverview}">
+                                        <button type="button" class="btn btn-default btn-back-to-overview"
+                                                data-container="body"
+                                                title="Back to overview"><g:message
+                                                code="transcribe.nextAction.go_back_to_overview"/></button>
+                                    </g:if>
+                                    <g:else>
+                                        <button type="button" class="btn btn-default bvp-submit-button"
+                                                id="showNextFromProject"><g:message code="task.skip"/></button>
+                                    </g:else>
                                     <vpf:taskTopicButton task="${taskInstance}" class="btn-info"/>
                                     <g:if test="${validator}">
                                         <a href="${createLink(controller: "task", action: "projectAdmin", id: taskInstance?.project?.id, params: params.clone())}"/>
@@ -282,8 +297,16 @@
                                             class="btn btn-primary bvp-submit-button">${message(code: 'default.button.save.label', default: 'Submit for validation')}</button>
                                     <button type="button" id="btnSavePartial"
                                             class="btn btn-default bvp-submit-button">${message(code: 'default.button.save.partial.label', default: 'Save unfinished record')}</button>
-                                    <button type="button" class="btn btn-default bvp-submit-button"
-                                            id="showNextFromProject"><g:message code="task.skip"/></button>
+                                    <g:if test="${hasOverview}">
+                                        <button type="button" class="btn btn-default btn-back-to-overview"
+                                                data-container="body"
+                                                title="Back to overview"><g:message
+                                                code="transcribe.nextAction.go_back_to_overview"/></button>
+                                    </g:if>
+                                    <g:else>
+                                        <button type="button" class="btn btn-default bvp-submit-button"
+                                                id="showNextFromProject"><g:message code="task.skip"/></button>
+                                    </g:else>
                                     <vpf:taskTopicButton task="${taskInstance}" class="btn-info"/>
                                 </g:else>
                             </div>
@@ -793,6 +816,11 @@
             var skip = $(this).data('skip');
             var url = "${createLink(controller: (validator) ? "validate" : "transcribe", action: 'showNextFromProject', id: taskInstance?.project?.id, params: [prevId: taskInstance?.id])}";
             if (skip) url = url + '&skip='+skip;
+            window.location = url;
+        });
+        $(".btn-back-to-overview").click(function(e) {
+            e.preventDefault();
+            var url = "${createLink(controller: "overview", action: "showProjectOverview", id: taskInstance?.project?.id)}"
             window.location = url;
         });
 
