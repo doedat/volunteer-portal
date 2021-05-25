@@ -5,17 +5,33 @@ import org.springframework.web.multipart.MultipartFile
 
 class FrontPageController {
 
-    def index() {
+    def userService
 
+    def index() {
         redirect(action: "edit", params: params)
     }
 
+    boolean checkAdmin() {
+        if(!userService.isAdmin()) {
+            flash.message = "You do not have permission to view this page"
+            redirect(url: "/")
+            return false
+        }
+        return true
+    }
+
     def edit() {
+        if (!checkAdmin()) {
+            return
+        }
         ['frontPage':FrontPage.instance()]
     }
 
     @Transactional
     def save() {
+        if (!checkAdmin()) {
+            return
+        }
         def frontPage = FrontPage.instance();
 
         frontPage.projectOfTheDay = Project.get(Long.parseLong(params['projectOfTheDay']))
@@ -52,6 +68,9 @@ class FrontPageController {
 
     @Transactional
     def uploadHeroImage() {
+        if (!checkAdmin()) {
+            return
+        }
         if (params.containsKey('clear-hero')) {
             def frontPage = FrontPage.instance()
             frontPage.heroImage = null
@@ -69,12 +88,18 @@ class FrontPageController {
     }
 
     def getLogos() {
+        if (!checkAdmin()) {
+            return
+        }
         def logos = settingsService.getSetting(SettingDefinition.FrontPageLogos)
         respond logos
     }
 
     @Transactional
     def addLogoImage() {
+        if (!checkAdmin()) {
+            return
+        }
         Map<String, List<MultipartFile>> fileMap = request.multiFileMap
         try {
             def results = fileUploadService.uploadImages('logos', fileMap)
@@ -93,6 +118,9 @@ class FrontPageController {
 
     @Transactional
     def updateLogoImages() {
+        if (!checkAdmin()) {
+            return
+        }
         def logos = request.getJSON()
         if (logos instanceof List) {
             settingsService.setSetting(SettingDefinition.FrontPageLogos.key, (List<String>) logos)

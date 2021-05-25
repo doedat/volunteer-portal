@@ -51,8 +51,10 @@ class AdminController {
     }
 
     def tutorialManagement() {
-        def tutorials = tutorialService.listTutorials()
-        [tutorials: tutorials]
+        if(checkAdmin()){
+            def tutorials = tutorialService.listTutorials()
+            [tutorials: tutorials]
+        }
     }
 
     def uploadTutorial() {
@@ -221,6 +223,9 @@ class AdminController {
     }
 
     def currentUsers() {
+        if(checkAdmin()){
+            render(view: "currentUsers")
+        }
     }
 
     def userActivityInfo() {
@@ -243,13 +248,21 @@ class AdminController {
     }
 
     def tools() {
+        if(checkAdmin()) {
+            render(view: "tools")
+        }
     }
 
     def mappingTool() {
-
+        if(checkAdmin()) {
+            render(view: "/mappingTool")
+        }
     }
 
     def migrateProjectsToInstitutions() {
+        if(!checkAdmin()) {
+            return
+        }
         final projectsWithOwners = Project.executeQuery("select new map (id as id, name as name, featuredOwner as featuredOwner) from Project where institution is null order by ${params.sort ?: 'featuredOwner'} ${params.order ?: 'asc'}").each { it.put('lowerFeaturedOwner', it?.featuredOwner?.replaceAll('\\s', '')?.toLowerCase()) }
         final insts = Institution.executeQuery("select new map(id as id, name as name) from Institution").each { it.put('lowerName', it?.name?.replaceAll('\\s', '')?.toLowerCase()) }
 
@@ -266,6 +279,9 @@ class AdminController {
     }
 
     def doMigrateProjectsToInstitutions() {
+        if(!checkAdmin()) {
+            return
+        }
         def cmd = request.JSON
         cmd.each {
             def proj = Project.get(it.id)

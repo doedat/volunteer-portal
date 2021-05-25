@@ -11,8 +11,20 @@ class StatsController {
     def statsService
     def settingsService
     def leaderBoardService
+    def userService
 
-    def index() {}
+    def index() {
+        checkAdmin()
+    }
+
+    boolean checkAdmin() {
+        if(!userService.isAdmin()) {
+            flash.message = "You do not have permission to view this page"
+            redirect(url: "/")
+            return false
+        }
+        return true
+    }
 
     def volunteerStats() {
         def fromDate = params?.date('startDate', dateFormats) ?: new Date() - defaultDayDiff

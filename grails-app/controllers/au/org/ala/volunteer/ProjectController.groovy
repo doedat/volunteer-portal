@@ -1,19 +1,15 @@
 package au.org.ala.volunteer
 
-import com.google.common.base.Stopwatch
-import grails.converters.*
-import org.apache.commons.io.FileUtils
-import grails.web.servlet.mvc.GrailsParameterMap
-import org.springframework.web.multipart.MultipartHttpServletRequest
-import org.springframework.web.multipart.MultipartFile
 import au.org.ala.cas.util.AuthenticationCookieUtils
+import com.google.common.base.Stopwatch
+import grails.converters.JSON
+import grails.web.servlet.mvc.GrailsParameterMap
+import org.apache.commons.io.FileUtils
+import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.multipart.MultipartHttpServletRequest
 
-import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST
-import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN
-import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-import static javax.servlet.http.HttpServletResponse.SC_NO_CONTENT
-import static javax.servlet.http.HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE
-import static javax.servlet.http.HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE
+import static javax.servlet.http.HttpServletResponse.*
 
 class ProjectController {
 
@@ -64,7 +60,7 @@ class ProjectController {
                 row.put("members", [])
                 roles.addAll(row)
             }
-            
+
             userIds.each {
                 // iterate over each user and assign to a role.
                 def userId = it[0]
@@ -380,210 +376,214 @@ class ProjectController {
         }
     }
 
-    def edit() {
-        def currentUser = userService.currentUserId
-        if (currentUser != null && userService.isAdmin()) {
-            redirect(action:"editGeneralSettings", params: params)
-            return
-        } else {
+    boolean checkAdminForProject(Project project) {
+        if(!projectService.isAdminForProject(project)) {
             flash.message = "You do not have permission to view this page"
             redirect(controller: "project", action: "index", id: params.id)
+            return false
         }
+        return true
+    }
+
+    boolean checkAdmin() {
+        if(!userService.isAdmin()) {
+            flash.message = "You do not have permission to view this page"
+            redirect(url: "/")
+            return false
+        }
+        return true
+    }
+
+    boolean checkExist(Project project) {
+        if (!project) {
+            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
+            redirect(action: "list")
+            return false
+        }
+        return true
+    }
+    
+    def edit() {
+        def project = Project.get(params.int("id"))
+
+        if (!checkAdminForProject(project)) { 
+            return 
+        }
+        
+        redirect(action:"editGeneralSettings", params: params)
     }
 
     def editGeneralSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            final insts = Institution.list()
-            //final names = insts*.i18nName.toString()
-            final names = insts.collect{ it.i18nName.toString() }
-            final nameToId = insts.collectEntries { ["${it.i18nName}": it.id] }
-            final labelCats = Label.withCriteria { projections { distinct 'category' } }
-
-            final sortedLabels = projectInstance.labels.sort { a,b -> def x = a.category?.compareTo(b.category); return x == 0 ? a.value.compareTo(b.value) : x }
-            def counter = 0
-            final catColourMap = labelCats.collectEntries { [(it): LABEL_COLOURS[counter++ % LABEL_COLOURS.size()]] }
-            return [projectInstance: projectInstance, templates: Template.listOrderByName(), projectTypes: ProjectType.listOrderByName(), institutions: names, institutionsMap: nameToId, labelColourMap: catColourMap, sortedLabels: sortedLabels]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+
+        final insts = Institution.list()
+        //final names = insts*.i18nName.toString()
+        final names = insts.collect{ it.i18nName.toString() }
+        final nameToId = insts.collectEntries { ["${it.i18nName}": it.id] }
+        final labelCats = Label.withCriteria { projections { distinct 'category' } }
+
+        final sortedLabels = project.labels.sort { a,b -> def x = a.category?.compareTo(b.category); return x == 0 ? a.value.compareTo(b.value) : x }
+        def counter = 0
+        final catColourMap = labelCats.collectEntries { [(it): LABEL_COLOURS[counter++ % LABEL_COLOURS.size()]] }
+        return [projectInstance: project, templates: Template.listOrderByName(), projectTypes: ProjectType.listOrderByName(), institutions: names, institutionsMap: nameToId, labelColourMap: catColourMap, sortedLabels: sortedLabels]
     }
 
     def editTutorialLinksSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            return [projectInstance: projectInstance, templates: Template.list(), projectTypes: ProjectType.list() ]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+
+        return [projectInstance: project, templates: Template.list(), projectTypes: ProjectType.list() ]
     }
 
     def editPicklistSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            def picklistInstitutionCodes = [""]
-            picklistInstitutionCodes.addAll(picklistService.getInstitutionCodes())
-
-            return [projectInstance: projectInstance, picklistInstitutionCodes: picklistInstitutionCodes ]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+
+        def picklistInstitutionCodes = [""]
+        picklistInstitutionCodes.addAll(picklistService.getInstitutionCodes())
+
+        return [projectInstance: project, picklistInstitutionCodes: picklistInstitutionCodes ]
     }
 
     def editMapSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            return [projectInstance: projectInstance ]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+        return [projectInstance: project ]
     }
 
     def editBannerImageSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            return [projectInstance: projectInstance ]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+        return [projectInstance: project]
     }
 
     def editBackgroundImageSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            return [projectInstance: projectInstance ]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+        return [projectInstance: project]
     }
 
     def editTaskSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            def taskCount = Task.countByProject(projectInstance)
-            return [projectInstance: projectInstance, taskCount: taskCount]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+        def taskCount = Task.countByProject(project)
+        return [projectInstance: project, taskCount: taskCount]
     }
 
     def editNewsItemsSettings() {
-        def projectInstance = Project.get(params.int("id"))
-        if (!projectInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
-        } else {
-            def newsItems = NewsItem.findAllByProject(projectInstance, [sort:'created', order:'desc'])
-            return [projectInstance: projectInstance, newsItems: newsItems]
+        def project = Project.get(params.int("id"))
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
+        def newsItems = NewsItem.findAllByProject(project, [sort:'created', order:'desc'])
+        return [projectInstance: project, newsItems: newsItems]
     }
 
     def updateGeneralSettings() {
+        def project = Project.get(params.id)
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
+        }
 
-        def projectInstance = Project.get(params.id)
-        if (projectInstance) {
+        if (params.name) {
+            params.featuredLabel = params.name
+        }
 
-            if (params.name) {
-                params.featuredLabel = params.name
-            }
+        final instId = params.getLong("institutionId")
+        def inst
+        if (instId && (inst = Institution.get(instId))) {
+            project.institution = inst
+        } else {
+            project.institution = null
+        }
 
-            final instId = params.getLong("institutionId")
-            def inst
-            if (instId && (inst = Institution.get(instId))) {
-                projectInstance.institution = inst
-            } else {
-                projectInstance.institution = null
-            }
-
-            if (!saveProjectSettingsFromParams(projectInstance, params)) {
-                render(view: "editGeneralSettings", model: [projectInstance: projectInstance])
-            } else {
-                redirect(action:'editGeneralSettings', id: projectInstance.id)
-            }
-        }  else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
+        if (!saveProjectSettingsFromParams(project, params)) {
+            render(view: "editGeneralSettings", model: [projectInstance: project])
+        } else {
+            redirect(action: 'editGeneralSettings', id: project.id)
         }
     }
 
     def update() {
-        def projectInstance = Project.get(params.id)
-        if (projectInstance) {
-            if (!saveProjectSettingsFromParams(projectInstance, params)) {
-                render(view: "editGeneralSettings", model: [projectInstance: projectInstance])
-            } else {
-                redirect(action:'editGeneralSettings', id: projectInstance.id)
-            }
-        }  else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
+        def project = Project.get(params.id)
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
+        }
+        if (!saveProjectSettingsFromParams(project, params)) {
+            render(view: "editGeneralSettings", model: [projectInstance: project])
+        } else {
+            redirect(action: 'editGeneralSettings', id: project.id)
         }
     }
 
     def updateTutorialLinksSettings() {
-        def projectInstance = Project.get(params.id)
-        if (projectInstance) {
-            if (!saveProjectSettingsFromParams(projectInstance, params)) {
-                def newsItems = NewsItem.findAllByProject(projectInstance, [sort:'created', order:'desc'])
-                render(view: "editTutorialLinksSettings", model: [projectInstance: projectInstance, newsItems: newsItems])
-            } else {
-                redirect(action:'editTutorialLinksSettings', id: projectInstance.id)
-            }
-        }  else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
+        def project = Project.get(params.id)
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
+        }
+        if (!saveProjectSettingsFromParams(project, params)) {
+            def newsItems = NewsItem.findAllByProject(project, [sort: 'created', order: 'desc'])
+            render(view: "editTutorialLinksSettings", model: [projectInstance: project, newsItems: newsItems])
+        } else {
+            redirect(action: 'editTutorialLinksSettings', id: project.id)
         }
     }
 
     def updateNewsItemsSettings() {
-
-        def projectInstance = Project.get(params.id)
-        if (projectInstance) {
-            if (!saveProjectSettingsFromParams(projectInstance, params)) {
-                render(view: "editNewsItemsSettings", model: [projectInstance: projectInstance])
-            } else {
-                redirect(action:'editNewsItemsSettings', id: projectInstance.id)
-            }
-        }  else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
+        def project = Project.get(params.id)
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
+        }
+        if (!saveProjectSettingsFromParams(project, params)) {
+            render(view: "editNewsItemsSettings", model: [projectInstance: project])
+        } else {
+            redirect(action: 'editNewsItemsSettings', id: project.id)
         }
     }
 
 
     def deleteAllTasksFragment() {
-        def projectInstance = Project.get(params.int("id"))
-        def taskCount = Task.countByProject(projectInstance)
-        [projectInstance: projectInstance, taskCount: taskCount]
+        def project = Project.get(params.int("id"))
+        checkAdminForProject(project)
+        def taskCount = Task.countByProject(project)
+        [projectInstance: project, taskCount: taskCount]
     }
 
     def deleteProjectFragment() {
-        def projectInstance = Project.get(params.int("id"))
-        def taskCount = Task.countByProject(projectInstance)
-        [projectInstance: projectInstance, taskCount: taskCount]
+        def project = Project.get(params.int("id"))
+        checkAdminForProject(project)
+        def taskCount = Task.countByProject(project)
+        [projectInstance: project, taskCount: taskCount]
     }
 
-    private boolean saveProjectSettingsFromParams(Project projectInstance, GrailsParameterMap params) {
-
-        if (projectInstance) {
+    private boolean saveProjectSettingsFromParams(Project project, GrailsParameterMap params) {
+        if (project) {
             if (params.version) {
                 def version = params.version.toLong()
-                if (projectInstance.version > version) {
-                    projectInstance.errors.rejectValue("version", "default.optimistic.locking.failure", [message(code: 'project.label', default: 'Project')] as Object[], "Another user has updated this Project while you were editing")
+                if (project.version > version) {
+                    project.errors.rejectValue("version", "default.optimistic.locking.failure", [message(code: 'project.label', default: 'Project')] as Object[], "Another user has updated this Project while you were editing")
                     return false
                 }
             }
-            projectInstance.properties = params
-            projectInstance.save(flush: true)
+            project.properties = params
+            project.save(flush: true)
 
-            if (!projectInstance.hasErrors() && projectInstance.save(flush: true)) {
+            if (!project.hasErrors() && project.save(flush: true)) {
                 flash.message = message(code: "project.backend.expedition_updated")
                 return true
             }
@@ -592,40 +592,32 @@ class ProjectController {
     }
 
     def updatePicklistSettings() {
-        def projectInstance = Project.get(params.id)
-        if (projectInstance) {
-            if (!saveProjectSettingsFromParams(projectInstance, params)) {
-                render(view: "editPicklistSettings", model: [projectInstance: projectInstance])
-                return
-            } else {
-                redirect(action:'editPicklistSettings', id: projectInstance.id)
-            }
-        }  else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-            redirect(action: "list")
+        def project = Project.get(params.id)
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
+        }
+        if (!saveProjectSettingsFromParams(project, params)) {
+            render(view: "editPicklistSettings", model: [projectInstance: project])
+        } else {
+            redirect(action: 'editPicklistSettings', id: project.id)
         }
     }
-
 
     def delete() {
-        def projectInstance = Project.get(params.id)
-        if (projectInstance) {
-            try {
-                projectService.deleteProject(projectInstance)
-                flash.message = "${message(code: 'default.deleted.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-                redirect(action: "list")
-            }
-            catch (org.springframework.dao.DataIntegrityViolationException e) {
-                flash.message = "${message(code: 'default.not.deleted.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
-                redirect(action: "show", id: params.id)
-            }
+        def project = Project.get(params.id)
+        if (!checkExist(project) || !checkAdminForProject(project)) {
+            return
         }
-        else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
+        try {
+            projectService.deleteProject(project)
+            flash.message = "${message(code: 'default.deleted.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
             redirect(action: "list")
+        } catch (DataIntegrityViolationException e) {
+            flash.message = "${message(code: 'default.not.deleted.message', args: [message(code: 'project.label', default: 'Project'), params.id])}"
+            redirect(action: "show", id: params.id)
         }
     }
-    
+
     def uploadFeaturedImage() {
         def projectInstance = Project.get(params.id)
 
@@ -861,6 +853,10 @@ class ProjectController {
     }
 
     def wizard(String id) {
+        if(!checkAdmin()) {
+            return
+        }
+
         if (!id) {
             def stagingId = UUID.randomUUID().toString()
             projectStagingService.ensureStagingDirectoryExists(stagingId)
@@ -918,12 +914,17 @@ class ProjectController {
     }
 
     def wizardAutosave(String id) {
+        if(!checkAdmin()) {
+            return
+        }
         projectStagingService.saveTempProjectDescriptor(id, request.reader)
         render status: 204
     }
 
     def wizardImageUpload(String id) {
-
+        if(!checkAdmin()) {
+            return
+        }
         def project = new NewProjectDescriptor(stagingId: id)
 
         def errors = []
@@ -965,6 +966,9 @@ class ProjectController {
     }
 
     def wizardClearImage(String id) {
+        if(!checkAdmin()) {
+            return
+        }
         def project = new NewProjectDescriptor(stagingId: id)
         def type = request.getJSON()?.type ?: ''
         if (type == 'background') {
@@ -976,6 +980,9 @@ class ProjectController {
     }
 
     def wizardProjectNameValidator(String name) {
+        if(!checkAdmin()) {
+            return
+        }
         render([ count: ((List<Project>)Project.createCriteria().list {
             i18nName {
                 like WebUtils.getCurrentLocaleAsString(), name
@@ -989,8 +996,8 @@ class ProjectController {
     }
 
     def wizardCreate(String id) {
-        if (!userService.isAdmin()) {
-            response.sendError(SC_FORBIDDEN, message(code: 'project.backend.permssion'))
+        if(!checkAdmin()) {
+            return
         }
         try {
             def body = request.getJSON()

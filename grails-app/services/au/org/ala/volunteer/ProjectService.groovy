@@ -25,6 +25,17 @@ class ProjectService {
     def logService
     def grailsApplication
 
+    /**
+     * Returns boolean if the user is an admin for the project or not.
+     * @param project the project in question
+     * @return true if user is admin, false if not.
+     */
+    def isAdminForProject(Project project) {
+        if (!project) return false
+        def currentUser = userService.currentUserId
+        return currentUser != null && (userService.isSiteAdmin() || userService.isInstitutionAdmin(project?.institution))
+    }
+
     def deleteTasksForProject(Project projectInstance, boolean deleteImages = true) {
         if (projectInstance) {
             def tasks = Task.findAllByProject(projectInstance)

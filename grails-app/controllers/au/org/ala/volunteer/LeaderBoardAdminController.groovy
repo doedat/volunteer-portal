@@ -16,7 +16,19 @@ class LeaderBoardAdminController {
         [users: ids ? userService.detailsForUserIds(ids) : []]
     }
 
+    boolean checkAdmin() {
+        if(!userService.isAdmin()) {
+            flash.message = "You do not have permission to view this page"
+            redirect(url: "/")
+            return false
+        }
+        return true
+    }
+
     def findEligibleUsers(String term) {
+        if (!checkAdmin()) {
+            return
+        }
         // todo search Atlas User Details
         def ineligible = settingsService.getSetting(SettingDefinition.IneligibleLeaderBoardUsers) ?: []
         def search = "%${term}%"
@@ -38,12 +50,18 @@ class LeaderBoardAdminController {
     }
 
     def addIneligibleUser(int id) {
+        if (!checkAdmin()) {
+            return
+        }
         settingsService.setSetting(SettingDefinition.IneligibleLeaderBoardUsers.key, 
                 settingsService.getSetting(SettingDefinition.IneligibleLeaderBoardUsers) + (Integer.toString(id)))
         render status: 204
     }
 
     def removeIneligibleUser(int id) {
+        if (!checkAdmin()) {
+            return
+        }
         settingsService.setSetting(SettingDefinition.IneligibleLeaderBoardUsers.key,
                 settingsService.getSetting(SettingDefinition.IneligibleLeaderBoardUsers) - (Integer.toString(id)))
         render status: 204
