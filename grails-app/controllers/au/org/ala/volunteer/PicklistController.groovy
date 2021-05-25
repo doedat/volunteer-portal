@@ -29,7 +29,9 @@ class PicklistController {
     }
 
     def load () {
-        checkAdmin()
+        if(checkAdmin()) {
+            render(view: "load")
+        }
     }
 
     def upload () {

@@ -14,7 +14,9 @@ class StatsController {
     def userService
 
     def index() {
-        checkAdmin()
+        if(checkAdmin()) {
+            render(view: "index")
+        }
     }
 
     boolean checkAdmin() {
